@@ -1,3 +1,4 @@
+
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -456,4 +457,5 @@ public class BT_CanvasView extends View { //you have to create a new java file a
             }
         }
     }
+
 }
