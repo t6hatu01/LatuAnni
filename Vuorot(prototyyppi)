@@ -1,0 +1,12 @@
+public void onDoneClicked(View view) {
+    showSpinner();
+
+    String nextParticipantId = getNextParticipantId();
+    mTrunData.turnCounter +=1;
+
+    showSpinner();
+
+    getGamesClient().takeTurn(this, mMatch.getMatchId(),
+            mTrunData.persist(), nextParticipantId);
+    mTurnData = null;
+    }
