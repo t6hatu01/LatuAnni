@@ -1,0 +1,138 @@
+Muuttujat:
+
+    public static int ship1_col;
+    public static int ship1_row;
+    public static int ship2_col;
+    public static int ship2_row;
+
+    SharedPreferences sharedPrefs;
+    SharedPreferences.Editor editor;
+    String MY_PLAYER_NUMBER_KEY = "my_ship_number";
+
+
+/* Shared Preference asetukset */
+/* public BT_CanvasView(Context context, AttributeSet attrs)-metodissa */
+	sharedPrefs = context.getSharedPreferences( "MY_SHARED_PREFERENCES", Context.MODE_PRIVATE);
+        editor = sharedPrefs.edit();
+
+
+/* Piirret‰‰n lis‰tty laiva. */
+/*T‰m‰ protected void onDraw(Canvas canvas) -metodiin*/
+        // Pelaaja 1:lle piirretty n‰kym‰
+        if (Objects.equals(sharedPrefs.getString(MY_PLAYER_NUMBER_KEY, null), "Player1") )
+        {
+            canvas.drawLine((midx[ship1_row][ship1_col] - ((4 * cellSide) / 11)), (midy[ship1_row][ship1_col] - ((4 * cellSide) / 11)), (midx[ship1_row][ship1_col] + ((4 * cellSide) / 11)), (midy[ship1_row][ship1_col] + ((4 * cellSide) / 11)), paintLaiva);
+            canvas.drawLine((midx[ship1_row][ship1_col] + ((4 * cellSide) / 11)), (midy[ship1_row][ship1_col] - ((4 * cellSide) / 11)), (midx[ship1_row][ship1_col] - ((4 * cellSide) / 11)), (midy[ship1_row][ship1_col] + ((4 * cellSide) / 11)), paintLaiva);
+        }
+
+        // Pelaaja 2:lle piirretty n‰kym‰
+        if ( Objects.equals(sharedPrefs.getString(MY_PLAYER_NUMBER_KEY, null), "Player2") )
+        {
+            canvas.drawCircle(midx[ship2_row][ship2_col], midy[ship2_row][ship2_col], (4 * cellSide) / 11, paintLaiva);
+            canvas.drawCircle(midx[ship2_row][ship2_col], midy[ship2_row][ship2_col], (13 * cellSide) / 44, paintLaiva);
+        }
+ 
+
+
+
+  @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN && touchEnabled) {
+            float touchX = event.getX();
+            float touchY = event.getY();
+            if (touchX < canvasSide && touchX > 0 && touchY < canvasSide && touchX > 0) {
+                int col = (int) (touchX / cellSide);
+                int row = (int) (touchY / cellSide);
+
+                /* LISƒTTY. Lis‰t‰‰n laiva muistiin */
+                if ( turn == 0 || turn == 1 )
+                {
+                    if (turn == 1)
+                    {
+                        ship2_col = col;
+                        ship2_row = row;
+                        turn++;
+
+                        editor.putString(MY_PLAYER_NUMBER_KEY, "Player2"); //Tallennetaan Shared Preferenceen pelaajan numero
+                        editor.apply();
+
+                        String status = "000000000";
+                        status = status.concat(";" + turn);
+                        byte[] ByteArray = status.getBytes();
+                        connectedThread.write(ByteArray); //HOX! L‰hetet‰‰n muuttuneet pelilaudan tiedot vastapelaajalle.
+
+                        p2Name = MainActivity.MyName.trim().toUpperCase();
+                        p1Name = MainActivity.OpponentName.trim().toUpperCase();
+                        touchEnabled = false;
+                    }
+                    if (turn == 0)
+                    {
+                        ship1_col = col;
+                        ship1_row = row;
+                        turn++;
+
+                        editor.putString(MY_PLAYER_NUMBER_KEY, "Player1"); //Tallennetaan Shared Preferenceen pelaajan numero
+                        editor.apply();
+
+                        String status = "000000000";
+                        status = status.concat(";" + turn);
+                        byte[] ByteArray = status.getBytes();
+                        connectedThread.write(ByteArray); //HOX! L‰hetet‰‰n muuttuneet pelilaudan tiedot vastapelaajalle.
+
+                        p1Name = MainActivity.MyName.trim().toUpperCase();
+                        p2Name = MainActivity.OpponentName.trim().toUpperCase();
+                        touchEnabled = false;
+                    }
+                }
+                else {
+                    if (a[row][col] == 0) {
+                        a[row][col]++;
+                        turn++;
+
+                        if (turn % 2 == 0) {
+                            a[row][col]++;
+                        }
+
+                        if (connectedThread != null) {
+                            String status = "";
+                            for (int i = 0; i < 3; i++) {
+                                for (int j = 0; j < 3; j++) {
+                                    status = status.concat(String.valueOf(a[i][j])); //HOX! Kirjoitetaan "muistiin", mihin lis‰ttiin merkki
+                                }
+                            }
+                            status = status.concat(";" + turn);
+                            byte[] ByteArray = status.getBytes();
+                            connectedThread.write(ByteArray); //HOX! L‰hetet‰‰n muuttuneet pelilaudan tiedot vastapelaajalle.
+//                            if (turn == 2) {
+//                                p1Name = MainActivity.MyName.trim().toUpperCase();
+//                                p2Name = MainActivity.OpponentName.trim().toUpperCase();
+//                            }
+//                            else if (turn == 3) {
+//                                p2Name = MainActivity.MyName.trim().toUpperCase();
+//                                p1Name = MainActivity.OpponentName.trim().toUpperCase();
+//                            }
+                            touchEnabled = false;
+                        }
+
+//                        if (!oncewin && !oncedrawen)
+                        if ( (!player1_won || !player2_won) && !oncedrawen) {
+                            invalidate();
+                            check();
+                        } else {
+                            try {
+                                connectedThread = null;
+                                bluetoothSocket.close();
+                            } catch (Exception e) {
+                                Log.e(TAG, "exception " + e.getMessage());
+                            }
+                            Intent intent = new Intent();
+                            BT_TTT.act_2p.setResult(3, intent);
+                            BT_TTT.act_2p.finish();
+                            editor.remove(MY_PLAYER_NUMBER_KEY);
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
